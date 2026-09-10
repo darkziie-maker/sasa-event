@@ -1,6 +1,8 @@
 import "dotenv/config";
 import express from "express";
 import { createServer } from "http";
+import { createServer as createHttpsServer } from "https";
+import fs from "fs";
 import net from "net";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import { registerOAuthRoutes } from "./oauth";
@@ -59,6 +61,26 @@ async function startServer() {
   server.listen(port, () => {
     console.log(`Server running on http://localhost:${port}/`);
   });
+
+  // Optional HTTPS listener. Camera / getUserMedia requires a secure context,
+  // so serving over TLS (even with a self-signed cert that is accepted once)
+  // lets the scan feature work on phones over the Tailscale/LAN address.
+  const httpsCert = process.env.HTTPS_CERT;
+  const httpsKey = process.env.HTTPS_KEY;
+  if (httpsCert && httpsKey) {
+    try {
+      const credentials = {
+        cert: fs.readFileSync(httpsCert),
+        key: fs.readFileSync(httpsKey),
+      };
+      const httpsPort = parseInt(process.env.HTTPS_PORT || "3443");
+      createHttpsServer(credentials, app).listen(httpsPort, () => {
+        console.log(`Server running on https://localhost:${httpsPort}/`);
+      });
+    } catch (error) {
+      console.error("[HTTPS] Failed to start TLS listener:", error);
+    }
+  }
 }
 
 startServer().catch(console.error);

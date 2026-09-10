@@ -5,6 +5,9 @@ import { BarChart3, Camera, CheckCircle2, CircleDollarSign, Gift, Loader2, LogOu
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 
+const mediaSupported = () =>
+  typeof navigator !== "undefined" && Boolean(navigator.mediaDevices?.getUserMedia);
+
 export default function Dashboard() {
   const { user, loading: authLoading, logout } = useAuth({ redirectOnUnauthenticated: true, redirectPath: "/login-dashboard" });
   const query = trpc.event.dashboard.useQuery(undefined, { enabled: Boolean(user) });
@@ -77,6 +80,12 @@ export default function Dashboard() {
   const startScanner = async () => {
     if (!videoRef.current) return;
     setScannerError("");
+    if (!mediaSupported()) {
+      setScannerError(
+        "Kamera diblokir karena koneksi belum aman (butuh HTTPS). Buka lewat https://100.99.82.118:3443 atau https://habitat-assistant.tail41f5b0.ts.net lalu izinkan akses kamera."
+      );
+      return;
+    }
     try {
       if (!audioContextRef.current) {
         const AudioContextCtor = window.AudioContext || (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
@@ -100,6 +109,17 @@ export default function Dashboard() {
     scannerRef.current?.stop();
     setScannerOpen(false);
   };
+
+  // Auto-open the camera scanner as soon as the panitia dashboard is ready —
+  // no extra tap needed (the browser still asks for camera permission once).
+  useEffect(() => {
+    if (authLoading || !user) return;
+    const timer = window.setTimeout(() => {
+      void startScanner();
+    }, 500);
+    return () => window.clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authLoading, user]);
 
   const toggleContinuousMode = () => {
     setContinuousMode(value => {

@@ -115,3 +115,6 @@ client/public/__manus__/version.json
 
 # Local SQLite database
 /data/
+
+# Local TLS dev certs
+/certs/
