@@ -1,0 +1,1 @@
+ALTER TABLE `guests` ADD `redeemedBy` varchar(180);
