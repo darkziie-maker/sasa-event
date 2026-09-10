@@ -45,10 +45,6 @@ export default function DrawDisplay() {
   };
 
   useEffect(() => {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
-      try { handleMessage(JSON.parse(saved) as DrawMessage); } catch {}
-    }
     const channel = "BroadcastChannel" in window ? new BroadcastChannel(CHANNEL_NAME) : null;
     if (channel) channel.onmessage = event => handleMessage(event.data as DrawMessage);
     const onStorage = (event: StorageEvent) => {
