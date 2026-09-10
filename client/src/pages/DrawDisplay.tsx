@@ -70,8 +70,24 @@ export default function DrawDisplay() {
 
   useEffect(() => {
     if (phase !== "rolling" || candidates.length === 0) return;
-    const timer = window.setInterval(() => setRollingIndex(index => (index + 1) % candidates.length), 85);
-    return () => window.clearInterval(timer);
+    const ROLL_MS = 4200;
+    const startAt = performance.now();
+    let timer: number | undefined;
+    let cancelled = false;
+    const scheduleNext = () => {
+      if (cancelled) return;
+      const t = Math.min(1, (performance.now() - startAt) / ROLL_MS);
+      const delay = 55 + Math.pow(t, 2.6) * 650; // cepat → lambat
+      timer = window.setTimeout(() => {
+        setRollingIndex(index => (index + 1 + Math.floor(Math.random() * 3)) % candidates.length);
+        scheduleNext();
+      }, delay);
+    };
+    scheduleNext();
+    return () => {
+      cancelled = true;
+      if (timer) window.clearTimeout(timer);
+    };
   }, [phase, candidates]);
 
   useEffect(() => {

@@ -47,6 +47,23 @@ export const appRouter = router({
         createdAt: guest.createdAt.toISOString(),
       };
     }),
+    guests: protectedProcedure.query(async () => {
+      const { guestRows, prizeRows } = await getEventRows();
+      const prizeName = (id: number | null) => prizeRows.find(prize => prize.id === id)?.name ?? null;
+      return guestRows.map(guest => ({
+        id: guest.id,
+        registrationCode: guest.registrationCode,
+        name: guest.name,
+        department: guest.department,
+        phone: guest.phone,
+        isWinner: guest.isWinner,
+        prizeName: guest.prizeId ? prizeName(guest.prizeId) : null,
+        winnerAt: guest.winnerAt,
+        redeemedAt: guest.redeemedAt,
+        redeemedBy: guest.redeemedBy,
+        createdAt: guest.createdAt,
+      }));
+    }),
     dashboard: protectedProcedure.query(async () => {
       const { guestRows, prizeRows } = await getEventRows();
       const redeemed = guestRows.filter(guest => guest.redeemedAt).length;
