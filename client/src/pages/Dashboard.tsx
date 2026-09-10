@@ -136,8 +136,9 @@ export default function Dashboard() {
   };
 
   const publishDrawEvent = (message: object) => {
-    localStorage.setItem("sasa-doorprize-event", JSON.stringify(message));
-    displayChannelRef.current?.postMessage(message);
+    const payload = { ...message, at: Date.now() };
+    localStorage.setItem("sasa-doorprize-event", JSON.stringify(payload));
+    displayChannelRef.current?.postMessage(payload);
   };
 
   const openDrawDisplay = () => {
@@ -169,27 +170,28 @@ export default function Dashboard() {
     ensureDisplayWindow();
     setWinner(null);
     setIsShuffling(true);
-    publishDrawEvent({ type: "draw-start", prizeName: prize.name, candidates });
-    let index = 0;
-    setRollingName(candidates[0]?.name ?? "");
-    const ticker = window.setInterval(() => {
-      index = (index + 1) % candidates.length;
-      setRollingName(candidates[index]?.name ?? "");
-    }, 85);
+    let ticker: number | undefined;
     try {
+      publishDrawEvent({ type: "draw-start", prizeName: prize.name, candidates });
+      let index = 0;
+      setRollingName(candidates[0]?.name ?? "");
+      ticker = window.setInterval(() => {
+        index = (index + 1) % candidates.length;
+        setRollingName(candidates[index]?.name ?? "");
+      }, 85);
       await new Promise(resolve => window.setTimeout(resolve, 2600));
       const result = await drawMutation.mutateAsync({ prizeId });
-      window.clearInterval(ticker);
       const revealedWinner = { name: result.winner.name, department: result.winner.department, registrationCode: result.winner.registrationCode, prizeName: result.prize.name };
       setRollingName(result.winner.name);
       setWinner(revealedWinner);
       publishDrawEvent({ type: "draw-reveal", winner: revealedWinner });
       setSelectedPrizeId(null);
       void query.refetch();
-    } catch {
-      window.clearInterval(ticker);
+    } catch (error) {
+      console.error("[Draw] gagal", error);
       publishDrawEvent({ type: "display-reset" });
     } finally {
+      if (ticker) window.clearInterval(ticker);
       setIsShuffling(false);
     }
   };

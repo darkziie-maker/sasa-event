@@ -11,9 +11,9 @@ type Winner = {
 };
 
 type DrawMessage =
-  | { type: "draw-start"; prizeName: string; candidates: Array<{ name: string; department: string }> }
-  | { type: "draw-reveal"; winner: Winner }
-  | { type: "display-reset" };
+  | { type: "draw-start"; prizeName: string; candidates: Array<{ name: string; department: string }>; at?: number }
+  | { type: "draw-reveal"; winner: Winner; at?: number }
+  | { type: "display-reset"; at?: number };
 
 const CHANNEL_NAME = "sasa-doorprize-display";
 const STORAGE_KEY = "sasa-doorprize-event";
@@ -45,6 +45,16 @@ export default function DrawDisplay() {
   };
 
   useEffect(() => {
+    // Saat layar baru dibuka, ikuti event terakhir HANYA kalau masih fresh
+    // (menghindari nampilkan pemenang lama setelah reset, tapi tetap nampilkan
+    // roller kalau layar dibuka persis saat undian baru mulai).
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved) as DrawMessage;
+        if (typeof parsed.at === "number" && Date.now() - parsed.at < 120000) handleMessage(parsed);
+      } catch {}
+    }
     const channel = "BroadcastChannel" in window ? new BroadcastChannel(CHANNEL_NAME) : null;
     if (channel) channel.onmessage = event => handleMessage(event.data as DrawMessage);
     const onStorage = (event: StorageEvent) => {
